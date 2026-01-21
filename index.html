@@ -203,13 +203,67 @@
     background: linear-gradient(90deg, #00fff5, #ff00ea);
     border-radius: 10px;
     box-shadow: 0 0 15px #00fff5;
-    transition: width 1s ease;
+    transition: width 0.5s ease;
   }
 
   .meter-label {
     margin-top: 0.6rem;
     font-size: 0.9rem;
     letter-spacing: 1px;
+  }
+
+  .donation-panel {
+    background: rgba(0,255,245,0.05);
+    border: 2px solid #00fff5;
+    border-radius: 14px;
+    padding: 1.6rem;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 0 15px #00fff5aa;
+    text-align: center;
+  }
+
+  .donation-panel h3 {
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    text-shadow: 0 0 6px #00fff5aa;
+  }
+
+  .donation-amount {
+    font-size: 2.2rem;
+    margin-bottom: 0.8rem;
+    text-shadow: 0 0 10px #00fff5aa;
+  }
+
+  .donation-slider {
+    width: 100%;
+    margin: 1rem 0;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: rgba(0,255,245,0.25);
+    border-radius: 6px;
+    outline: none;
+  }
+
+  .donation-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #00fff5;
+    box-shadow: 0 0 12px #00fff5;
+    cursor: pointer;
+  }
+
+  .donation-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #00fff5;
+    box-shadow: 0 0 12px #00fff5;
+    cursor: pointer;
   }
 
   .auction-row {
@@ -353,6 +407,14 @@
     </div>
   </div>
 
+  <!-- Donation Slider -->
+  <div class="donation-panel">
+    <h3>Donate to the Pool</h3>
+    <div class="donation-amount" id="donationAmount">$10</div>
+    <input type="range" min="1" max="1000" step="1" value="10" class="donation-slider" id="donationSlider">
+    <button class="cta-button" id="donateBtn">Donate</button>
+  </div>
+
   <!-- Live Auctions -->
   <h2 class="stats-heading" style="margin-top:1rem;">Live Auctions</h2>
   <div class="auction-row">
@@ -377,11 +439,7 @@
   <h2 class="stats-heading" style="margin-top:1rem;">Top Contributors</h2>
   <div class="leaderboard">
     <h3>Leaderboard</h3>
-    <ul id="leaderboardList">
-      <li><span>Genesis Donor</span><span>$0</span></li>
-      <li><span>Node Pioneer</span><span>$0</span></li>
-      <li><span>Signal Amplifier</span><span>$0</span></li>
-    </ul>
+    <ul id="leaderboardList"></ul>
   </div>
 
 </div>
@@ -481,6 +539,15 @@ function animate(){
 }
 animate();
 
+// ───────── App State (REAL values only)
+let totalRaised = 0;
+let auctionPrices = {
+  car: 0,
+  fish: 0,
+  kit: 0
+};
+let leaderboard = [];
+
 // ───────── Launch button triggers stats reveal
 document.getElementById('launchBtn').addEventListener('click', () => {
   const hero = document.getElementById('hero');
@@ -493,75 +560,72 @@ document.getElementById('launchBtn').addEventListener('click', () => {
     const cards = statsSection.querySelectorAll('.auction-card, .leaderboard');
     cards.forEach((card,index)=>{ setTimeout(()=>card.classList.add('show'),index*200); });
 
-    animateRewardMeter(84250, 100000); // current total, goal
-    animateNumber('carPrice', 48000, true);
-    animateNumber('fishPrice', 120, true);
-    animateNumber('kitPrice', 350, true);
-    animateLeaderboard();
+    updateUI();
   },600);
 });
 
-// ───────── Number animation
-function animateNumber(id,target,isCurrency=false){
-  const el=document.getElementById(id);
-  let current=0;
-  const increment=Math.ceil(target/60);
-  const interval=setInterval(()=>{
-    current+=increment;
-    if(current>=target) current=target;
-    el.textContent = isCurrency ? `$${current.toLocaleString()}` : current;
-    if(current>=target) clearInterval(interval);
-  },30);
-}
+// ───────── Donation Slider Logic
+const donationSlider = document.getElementById('donationSlider');
+const donationAmountEl = document.getElementById('donationAmount');
+const donateBtn = document.getElementById('donateBtn');
 
-// ───────── Reward Meter
-function animateRewardMeter(total, goal){
-  const rewardEl = document.getElementById('rewardTotal');
-  const meterFill = document.getElementById('meterFill');
-  const meterLabel = document.getElementById('meterLabel');
+donationSlider.addEventListener('input', () => {
+  donationAmountEl.textContent = `$${Number(donationSlider.value).toLocaleString()}`;
+});
 
-  let current = 0;
-  const increment = Math.ceil(total/60);
+// ───────── Donate Action
+donateBtn.addEventListener('click', () => {
+  const amount = Number(donationSlider.value);
+  if(amount <= 0) return;
 
-  const interval = setInterval(()=>{
-    current += increment;
-    if(current >= total) current = total;
+  // Add to total pool
+  totalRaised += amount;
 
-    rewardEl.textContent = `$${current.toLocaleString()} Raised`;
-    const percent = Math.min((current / goal) * 100, 100);
-    meterFill.style.width = percent + '%';
-    meterLabel.textContent = `${Math.floor(percent)}% to next auction cycle`;
+  // Distribute to auctions equally for now (can change logic later)
+  const split = amount / 3;
+  auctionPrices.car += split;
+  auctionPrices.fish += split;
+  auctionPrices.kit += split;
 
-    if(current >= total) clearInterval(interval);
-  },30);
-}
+  // Add to leaderboard (anonymous for now)
+  const donorName = `Donor #${leaderboard.length + 1}`;
+  leaderboard.push({ name: donorName, amount });
 
-// ───────── Leaderboard animation
-function animateLeaderboard(){
-  const leaderboard = document.getElementById('leaderboardList');
-  const entries = [
-    { name: 'Genesis Donor', amount: 25000 },
-    { name: 'Node Pioneer', amount: 18000 },
-    { name: 'Signal Amplifier', amount: 12000 }
-  ];
+  // Update UI
+  updateUI();
 
-  leaderboard.innerHTML = '';
-  entries.forEach((entry, index) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span>${entry.name}</span><span>$0</span>`;
-    leaderboard.appendChild(li);
+  // Micro animation feedback
+  donateBtn.textContent = 'Thank You ⚡';
+  setTimeout(() => donateBtn.textContent = 'Donate', 1200);
+});
 
-    let current = 0;
-    const increment = Math.ceil(entry.amount/50);
-    const span = li.querySelector('span:last-child');
+// ───────── UI Updates
+function updateUI(){
+  // Update reward pool
+  document.getElementById('rewardTotal').textContent = `$${totalRaised.toLocaleString()} Raised`;
 
-    const interval = setInterval(()=>{
-      current += increment;
-      if(current >= entry.amount) current = entry.amount;
-      span.textContent = `$${current.toLocaleString()}`;
-      if(current >= entry.amount) clearInterval(interval);
-    },30);
-  });
+  // Update meter (100k goal cycle)
+  const goal = 100000;
+  const percent = Math.min((totalRaised / goal) * 100, 100);
+  document.getElementById('meterFill').style.width = percent + '%';
+  document.getElementById('meterLabel').textContent = `${Math.floor(percent)}% to next auction cycle`;
+
+  // Update auctions
+  document.getElementById('carPrice').textContent = `$${Math.floor(auctionPrices.car).toLocaleString()}`;
+  document.getElementById('fishPrice').textContent = `$${Math.floor(auctionPrices.fish).toLocaleString()}`;
+  document.getElementById('kitPrice').textContent = `$${Math.floor(auctionPrices.kit).toLocaleString()}`;
+
+  // Update leaderboard
+  const leaderboardEl = document.getElementById('leaderboardList');
+  leaderboardEl.innerHTML = '';
+  leaderboard
+    .sort((a,b) => b.amount - a.amount)
+    .slice(0,5)
+    .forEach(entry => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${entry.name}</span><span>$${entry.amount.toLocaleString()}</span>`;
+      leaderboardEl.appendChild(li);
+    });
 }
 </script>
 
