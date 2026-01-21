@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InfoFi • Resurrection Phase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    height: 100%;
+    background: #000;
+    font-family: 'Orbitron', sans-serif;
+    color: #e0fffe;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(0,255,245,0.06) 0%, transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(255,0,230,0.04) 0%, transparent 30%);
+  }
+
+  #bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+  }
+
+  .overlay-grid {
+    position: fixed;
+    inset: 0;
+    background: 
+      linear-gradient(to right, rgba(0,255,245,0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,255,245,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.7;
+    animation: gridDrift 60s linear infinite;
+  }
+
+  @keyframes gridDrift {
+    0% { transform: translate(0,0); }
+    100% { transform: translate(-60px, -60px); }
+  }
+
+  .hero {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+    transition: all 0.5s ease;
+  }
+
+  .glitch {
+    font-size: clamp(2.6rem, 7vw, 5.8rem);
+    font-weight: 900;
+    color: #00fff5;
+    text-shadow: 0 0 10px #00fff5, 0 0 30px #00fff5aa, 2px 0 0 #ff00ea, -2px 0 0 #00ffea;
+    letter-spacing: 0.08em;
+    line-height: 0.92;
+    animation: glitch 4s infinite;
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+
+  .glitch span {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+  }
+
+  .glitch span:nth-child(1) {
+    left: 2px;
+    text-shadow: -2px 0 #ff00ea;
+    clip: rect(0,900px,0,0);
+    animation: glitch-anim 3s infinite linear alternate-reverse;
+  }
+
+  .glitch span:nth-child(2) {
+    left: -2px;
+    text-shadow: 2px 0 #00ffea;
+    clip: rect(0,900px,0,0);
+    animation: glitch-anim2 2.5s infinite linear alternate-reverse;
+  }
+
+  @keyframes glitch {
+    0%,100% { text-shadow: 0 0 10px #00fff5, 2px 0 #ff00ea, -2px 0 #00ffea; }
+    20% { text-shadow: 5px 0 #ff00ea, -5px 0 #00ffea; }
+    40% { text-shadow: -5px 0 #00ffea, 5px 0 #ff00ea; }
+  }
+
+  .subtitle {
+    font-family: 'Roboto Mono', monospace;
+    font-size: clamp(1.3rem, 3.5vw, 2rem);
+    color: #a0ffe0;
+    margin: 1.5rem 0 3.5rem;
+    white-space: pre;
+    min-height: 1.5em;
+  }
+
+  .cta-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .cta-button {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem;
+    padding: 0.8rem 2rem;
+    color: #00fff5;
+    background: transparent;
+    border: 2px solid #00fff5;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px #00fff5aa;
+    animation: pulse 2s infinite;
+  }
+
+  .cta-button:hover {
+    background: #00fff5;
+    color: #000;
+    box-shadow: 0 0 25px #00fff5ff;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 15px #00fff5aa; }
+    50% { transform: scale(1.08); box-shadow: 0 0 25px #00fff5ff; }
+  }
+
+  /* ─── Stats Section ─── */
+  .stats-section {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 90%;
+    opacity: 0;
+    transition: all 0.6s ease;
+  }
+
+  .stats-section.show {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+
+  .stats-heading {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    color: #00fff5;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 8px #00fff5aa;
+  }
+
+  .main-info-card {
+    background: rgba(0,255,245,0.05);
+    border: 2px solid #00fff5;
+    border-radius: 14px;
+    padding: 2rem;
+    text-align: center;
+    color: #00fff5;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1rem;
+    box-shadow: 0 0 15px #00fff5aa;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .meter-container {
+    margin-top: 1rem;
+    width: 100%;
+  }
+
+  .meter-bar {
+    position: relative;
+    width: 100%;
+    height: 16px;
+    background: rgba(0,255,245,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 0 10px rgba(0,255,245,0.3);
+  }
+
+  .meter-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00fff5, #ff00ea);
+    border-radius: 10px;
+    box-shadow: 0 0 15px #00fff5;
+    transition: width 1s ease;
+  }
+
+  .meter-label {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+  }
+
+  .auction-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .auction-card {
+    background: rgba(0,255,245,0.05);
+    border: 2px solid #00fff5;
+    border-radius: 14px;
+    padding: 1.6rem;
+    text-align: center;
+    color: #00fff5;
+    font-family: 'Roboto Mono', monospace;
+    box-shadow: 0 0 15px #00fff5aa;
+    transform: translateY(50px);
+    opacity: 0;
+    transition: all 0.6s ease;
+  }
+
+  .auction-card.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .auction-card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .auction-card .price {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0.4rem 0;
+    text-shadow: 0 0 6px #00fff5aa;
+  }
+
+  .auction-card .credit {
+    font-size: 0.85rem;
+    opacity: 0.85;
+  }
+
+  .leaderboard {
+    background: rgba(0,255,245,0.04);
+    border: 2px solid #00fff5;
+    border-radius: 14px;
+    padding: 1.6rem;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 0 15px #00fff5aa;
+    text-align: center;
+    transform: translateY(50px);
+    opacity: 0;
+    transition: all 0.6s ease;
+  }
+
+  .leaderboard.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .leaderboard h3 {
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    text-shadow: 0 0 6px #00fff5aa;
+  }
+
+  .leaderboard ul {
+    list-style: none;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.95rem;
+  }
+
+  .leaderboard li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(0,255,245,0.15);
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 1.8rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #444;
+    font-size: 0.95rem;
+    font-family: 'Roboto Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  @media (max-width: 768px) {
+    .glitch { font-size: clamp(2.4rem, 9vw, 4.2rem); }
+    .subtitle { font-size: 1.35rem; }
+    .cta-button { font-size: 1.2rem; padding: 0.7rem 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="overlay-grid"></div>
+
+<div class="hero" id="hero">
+  <h1 class="glitch" aria-label="InfoFi didn’t die...">
+    <span>InfoFi didn’t die...</span>
+    InfoFi didn’t die...
+    <span>InfoFi didn’t die...</span>
+  </h1>
+  
+  <h1 class="glitch" aria-label="It has just begun..." style="margin-top: -0.8rem;">
+    <span>It has just begun...</span>
+    It has just begun...
+    <span>It has just begun...</span>
+  </h1>
+
+  <p class="subtitle" id="animatedSubtitle">Something is coming</p>
+
+  <div class="cta-container">
+    <button class="cta-button" id="launchBtn" type="button">Launch</button>
+  </div>
+</div>
+
+<div class="stats-section" id="statsSection">
+
+  <h2 class="stats-heading">Community Rewards</h2>
+
+  <!-- Community Reward Meter -->
+  <div class="main-info-card">
+    <h2 id="rewardTotal">$0 Raised</h2>
+    <p>Community Charity Pool</p>
+
+    <div class="meter-container">
+      <div class="meter-bar">
+        <div class="meter-fill" id="meterFill"></div>
+      </div>
+      <div class="meter-label" id="meterLabel">0% to next auction cycle</div>
+    </div>
+  </div>
+
+  <!-- Live Auctions -->
+  <h2 class="stats-heading" style="margin-top:1rem;">Live Auctions</h2>
+  <div class="auction-row">
+    <div class="auction-card">
+      <h3>🚗 Vehicle Auction</h3>
+      <div class="price" id="carPrice">$0</div>
+      <div class="credit">Donor credited: Asset Value</div>
+    </div>
+    <div class="auction-card">
+      <h3>🐟 Betta Fish</h3>
+      <div class="price" id="fishPrice">$0</div>
+      <div class="credit">Donor credited: Asset Value</div>
+    </div>
+    <div class="auction-card">
+      <h3>🌊 Betta + Aquarium Kit</h3>
+      <div class="price" id="kitPrice">$0</div>
+      <div class="credit">Donor credited: Asset Value</div>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <h2 class="stats-heading" style="margin-top:1rem;">Top Contributors</h2>
+  <div class="leaderboard">
+    <h3>Leaderboard</h3>
+    <ul id="leaderboardList">
+      <li><span>Genesis Donor</span><span>$0</span></li>
+      <li><span>Node Pioneer</span><span>$0</span></li>
+      <li><span>Signal Amplifier</span><span>$0</span></li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="footer">
+  Phase 0 • Charity • Decentralized
+</div>
+
+<script>
+// ───────── Animated "Something is coming..." dots
+const subtitleEl = document.getElementById('animatedSubtitle');
+let dotCount = 0;
+let forward = true;
+
+function animateDots() {
+  let dots = '.'.repeat(dotCount);
+  subtitleEl.textContent = 'Something is coming' + dots;
+
+  if (forward) {
+    dotCount++;
+    if (dotCount > 3) forward = false;
+  } else {
+    dotCount--;
+    if (dotCount < 0) forward = true;
+  }
+  setTimeout(animateDots, 500);
+}
+animateDots();
+
+// ───────── Background particle animation
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const nodes = [];
+const nodeCount = 90;
+const mouse = { x: null, y: null, radius: 180 };
+
+for(let i=0;i<nodeCount;i++){
+  nodes.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    vx: (Math.random()-0.5)*0.6,
+    vy: (Math.random()-0.5)*0.6,
+    baseRadius:1.8 + Math.random()*3.2,
+    radius:0
+  });
+}
+
+window.addEventListener('mousemove', e => { mouse.x = e.x; mouse.y = e.y; });
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+function animate(){
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  nodes.forEach(n => {
+    if(mouse.x && mouse.y){
+      const dx = mouse.x - n.x;
+      const dy = mouse.y - n.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if(dist < mouse.radius){ n.x += dx*0.008; n.y += dy*0.008; }
+    }
+    n.x += n.vx; n.y += n.vy;
+    if(n.x < 0 || n.x > canvas.width) n.vx*=-1;
+    if(n.y < 0 || n.y > canvas.height) n.vy*=-1;
+    n.radius = n.baseRadius + Math.sin(Date.now()*0.001 + n.x*0.01)*1.2;
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
+    ctx.fillStyle='#00fff5';
+    ctx.shadowColor='#00fff5';
+    ctx.shadowBlur=15;
+    ctx.fill();
+    ctx.shadowBlur=0;
+  });
+
+  ctx.strokeStyle='rgba(0,255,245,0.09)';
+  ctx.lineWidth=1;
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[j].y - nodes[i].y;
+      const dist = Math.hypot(dx,dy);
+      if(dist<140){
+        ctx.globalAlpha = (140-dist)/140*0.6;
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x,nodes[i].y);
+        ctx.lineTo(nodes[j].x,nodes[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.globalAlpha=1;
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ───────── Launch button triggers stats reveal
+document.getElementById('launchBtn').addEventListener('click', () => {
+  const hero = document.getElementById('hero');
+  const statsSection = document.getElementById('statsSection');
+  hero.style.opacity=0;
+  setTimeout(()=>{
+    hero.style.display='none';
+    statsSection.classList.add('show');
+
+    const cards = statsSection.querySelectorAll('.auction-card, .leaderboard');
+    cards.forEach((card,index)=>{ setTimeout(()=>card.classList.add('show'),index*200); });
+
+    animateRewardMeter(84250, 100000); // current total, goal
+    animateNumber('carPrice', 48000, true);
+    animateNumber('fishPrice', 120, true);
+    animateNumber('kitPrice', 350, true);
+    animateLeaderboard();
+  },600);
+});
+
+// ───────── Number animation
+function animateNumber(id,target,isCurrency=false){
+  const el=document.getElementById(id);
+  let current=0;
+  const increment=Math.ceil(target/60);
+  const interval=setInterval(()=>{
+    current+=increment;
+    if(current>=target) current=target;
+    el.textContent = isCurrency ? `$${current.toLocaleString()}` : current;
+    if(current>=target) clearInterval(interval);
+  },30);
+}
+
+// ───────── Reward Meter
+function animateRewardMeter(total, goal){
+  const rewardEl = document.getElementById('rewardTotal');
+  const meterFill = document.getElementById('meterFill');
+  const meterLabel = document.getElementById('meterLabel');
+
+  let current = 0;
+  const increment = Math.ceil(total/60);
+
+  const interval = setInterval(()=>{
+    current += increment;
+    if(current >= total) current = total;
+
+    rewardEl.textContent = `$${current.toLocaleString()} Raised`;
+    const percent = Math.min((current / goal) * 100, 100);
+    meterFill.style.width = percent + '%';
+    meterLabel.textContent = `${Math.floor(percent)}% to next auction cycle`;
+
+    if(current >= total) clearInterval(interval);
+  },30);
+}
+
+// ───────── Leaderboard animation
+function animateLeaderboard(){
+  const leaderboard = document.getElementById('leaderboardList');
+  const entries = [
+    { name: 'Genesis Donor', amount: 25000 },
+    { name: 'Node Pioneer', amount: 18000 },
+    { name: 'Signal Amplifier', amount: 12000 }
+  ];
+
+  leaderboard.innerHTML = '';
+  entries.forEach((entry, index) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${entry.name}</span><span>$0</span>`;
+    leaderboard.appendChild(li);
+
+    let current = 0;
+    const increment = Math.ceil(entry.amount/50);
+    const span = li.querySelector('span:last-child');
+
+    const interval = setInterval(()=>{
+      current += increment;
+      if(current >= entry.amount) current = entry.amount;
+      span.textContent = `$${current.toLocaleString()}`;
+      if(current >= entry.amount) clearInterval(interval);
+    },30);
+  });
+}
+</script>
+
+</body>
+</html>
